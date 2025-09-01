@@ -1,35 +1,37 @@
-// src/pages/index.js
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 
 export default function Home() {
-  const [products, setProducts] = useState([]);
+  const [publishedProducts, setPublishedProducts] = useState([]);
+  const [draftProducts, setDraftProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/products`
-      );
-      setProducts(
-        res.data.filter((p) => p.status === "Published" && !p.is_deleted)
-      );
+      const [publishedRes, draftsRes] = await Promise.all([
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/products/published`),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/products/drafts`),
+      ]);
+
+      setPublishedProducts(publishedRes.data);
+      setDraftProducts(draftsRes.data);
+
       setLoading(false);
       setError(false);
     } catch (err) {
       console.error(err);
       setError(true);
-      setLoading(true); // keep loading true so retry can happen
+      setLoading(true); // retry loop will handle
     }
   };
 
   useEffect(() => {
     fetchProducts();
     const interval = setInterval(() => {
-      if (loading) fetchProducts(); // retry while loading
-    }, 5000); // retry every 5 seconds
+      if (loading) fetchProducts();
+    }, 5000);
     return () => clearInterval(interval);
   }, [loading]);
 
@@ -52,8 +54,8 @@ export default function Home() {
 
       {loading && (
         <p>
-          Loading products… Backend might be waking up on Render. This page will
-          retry automatically.
+          Loading products… Backend might be waking up. This page will retry
+          automatically.
         </p>
       )}
 
@@ -70,26 +72,57 @@ export default function Home() {
       )}
 
       {!loading && !error && (
-        <div className="products-grid">
-          {products.map((p) => (
-            <div className="product-card" key={p.product_id}>
-              <h3>{p.product_name}</h3>
-              <p>{p.product_desc}</p>
-              <p>Status: {p.status}</p>
-              <div className="card-buttons">
-                <Link href={`/edit/${p.product_id}`}>
-                  <button className="edit-btn">Edit</button>
-                </Link>
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDelete(p.product_id)}
-                >
-                  Delete
-                </button>
+        <>
+          {/* Published Section */}
+          <h2>Published Products</h2>
+          <div className="products-grid">
+            {publishedProducts.map((p) => (
+              <div className="product-card" key={p.product_id}>
+                <h3>{p.product_name}</h3>
+                <p>{p.product_desc}</p>
+                <p>Status: {p.status}</p>
+                <div className="card-buttons">
+                  <Link href={`/edit/${p.product_id}`}>
+                    <button className="edit-btn">Edit</button>
+                  </Link>
+                  <button
+                    className="delete-btn"
+                    onClick={() => handleDelete(p.product_id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {/* Draft Section */}
+          {draftProducts.length > 0 && (
+            <>
+              <h2 style={{ marginTop: "30px" }}>Draft Products</h2>
+              <div className="products-grid">
+                {draftProducts.map((p) => (
+                  <div className="product-card draft" key={p.product_id}>
+                    <h3>{p.product_name}</h3>
+                    <p>{p.product_desc}</p>
+                    <p>Status: {p.status}</p>
+                    <div className="card-buttons">
+                      <Link href={`/edit/${p.product_id}`}>
+                        <button className="edit-btn">Edit</button>
+                      </Link>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(p.product_id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
