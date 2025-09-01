@@ -25,16 +25,34 @@ app.post("/products", (req, res) => {
   );
 });
 
-// Get all published products
+// Get all (non-deleted) products
 app.get("/products", (req, res) => {
-  const sql = `SELECT * FROM Products WHERE status='Published' AND is_deleted=FALSE`;
+  const sql = `SELECT * FROM Products WHERE is_deleted=FALSE`;
   db.query(sql, (err, results) => {
     if (err) throw err;
     res.json(results);
   });
 });
 
-// Get single product by ID
+// ✅ Get only published products
+app.get("/products/published", (req, res) => {
+  const sql = `SELECT * FROM Products WHERE status="Published" AND is_deleted=FALSE`;
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    res.json(results);
+  });
+});
+
+// ✅ Get only draft products
+app.get("/products/drafts", (req, res) => {
+  const sql = `SELECT * FROM Products WHERE status="Draft" AND is_deleted=FALSE`;
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    res.json(results);
+  });
+});
+
+// Get single product
 app.get("/products/:id", (req, res) => {
   const sql = "SELECT * FROM Products WHERE product_id = ?";
   db.query(sql, [req.params.id], (err, results) => {
